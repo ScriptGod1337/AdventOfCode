@@ -1,7 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
-
-string filePath = "input.txt";
+﻿string filePath = "input.txt";
 
 List<int> left = new List<int>();;
 List<int> right = new List<int>();
@@ -22,7 +19,7 @@ void similarity() {
 
     int similarity = 0;
     left.ForEach(x => {
-        similarity += (x *lookup.GetValueOrDefault (x, 0));
+        similarity += (x * lookup.GetValueOrDefault(x, 0));
     });
     Console.WriteLine(similarity);
 }
