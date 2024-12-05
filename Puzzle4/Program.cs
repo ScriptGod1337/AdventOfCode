@@ -50,7 +50,6 @@ List<char> makeTree(List<List<char>> matrix, int currentRow, int currentCol, int
     makeTree(matrix, currentRow + rowIncrement, currentCol + colIncrement, rowIncrement, colIncrement, elements);
     return elements;
 }
-
 #endregion
 
 #region part2
