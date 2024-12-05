@@ -36,12 +36,8 @@ List<int> fixOrder(List<int> pages) {
         var firstIncorrect = validPageDep.FirstOrDefault(depPage => n > page2Idx[depPage], -1);
         if (firstIncorrect >= 0) {
             var newPages = new List<int>(pages);
-            
             // swap elements
-            var page = pages[n];
-            newPages[n] = firstIncorrect;
-            newPages[page2Idx[firstIncorrect]] = page;
-
+            (newPages[n], newPages[page2Idx[firstIncorrect]]) = (newPages[page2Idx[firstIncorrect]], newPages[n]);
             // try again
             return fixOrder(newPages);
         }
