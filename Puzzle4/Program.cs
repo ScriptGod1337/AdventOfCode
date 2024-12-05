@@ -5,8 +5,8 @@ var matrix = readInputMatrix();
 
 var count = 0;
 #if false
-    var pattern = "XMAS";
-    part1();
+var pattern = "XMAS";
+part1();
 #endif
 
 #if true
