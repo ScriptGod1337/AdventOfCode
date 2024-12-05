@@ -15,13 +15,10 @@ part2();
 #endif
 
 #region part1
-void part1()
-{
-    for (int currentRow = 0; currentRow < matrix.Count; currentRow++)
-    {
+void part1() {
+    for (int currentRow = 0; currentRow < matrix.Count; currentRow++) {
         var row = matrix[currentRow];
-        for (int currentCol = 0; currentCol < row.Count; currentCol++)
-        {
+        for (int currentCol = 0; currentCol < row.Count; currentCol++) {
             searchPattern(matrix, currentRow, currentCol, 0, 1);
             searchPattern(matrix, currentRow, currentCol, 1, -1);
             searchPattern(matrix, currentRow, currentCol, 1, 0);
@@ -30,28 +27,22 @@ void part1()
     }
 }
 
-void searchPattern(List<List<char>> matrix, int currentRow, int currentCol, int rowIncrement, int colIncrement)
-{
+void searchPattern(List<List<char>> matrix, int currentRow, int currentCol, int rowIncrement, int colIncrement) {
     var tree = makeTree(matrix, currentRow, currentCol, rowIncrement, colIncrement);
-    if (testPattern(tree))
-    {
+    if (testPattern(tree)) {
         count++;
     }
 }
 
-List<char> makeTree(List<List<char>> matrix, int currentRow, int currentCol, int rowIncrement, int colIncrement, List<char> elements = null)
-{
-    if (elements == null)
-    {
+List<char> makeTree(List<List<char>> matrix, int currentRow, int currentCol, int rowIncrement, int colIncrement, List<char> elements = null) {
+    if (elements == null) {
         elements = new List<char>();
     }
-    if (elements.Count == pattern.Length)
-    {
+    if (elements.Count == pattern.Length) {
         return elements;
     }
 
-    if (!isInBound(matrix, currentRow, currentCol))
-    {
+    if (!isInBound(matrix, currentRow, currentCol)) {
         return elements;
     }
 
@@ -63,26 +54,20 @@ List<char> makeTree(List<List<char>> matrix, int currentRow, int currentCol, int
 #endregion
 
 #region part2
-void part2()
-{
-    for (int currentRow = 0; currentRow < matrix.Count; currentRow++)
-    {
+void part2() {
+    for (int currentRow = 0; currentRow < matrix.Count; currentRow++) {
         var row = matrix[currentRow];
-        for (int currentCol = 0; currentCol < row.Count; currentCol++)
-        {
-            if (isXMas(matrix, currentRow, currentCol))
-            {
+        for (int currentCol = 0; currentCol < row.Count; currentCol++) {
+            if (isXMas(matrix, currentRow, currentCol)) {
                 count++;
             }
         }
     }
 }
 
-bool isXMas(List<List<char>> matrix, int rowIdx, int colIdx)
-{
+bool isXMas(List<List<char>> matrix, int rowIdx, int colIdx) {
     var start = getChar(matrix, rowIdx, colIdx).Value;
-    if (!start.Equals('M') && !start.Equals('S'))
-    {
+    if (!start.Equals('M') && !start.Equals('S')) {
         return false;
     }
 
@@ -100,30 +85,25 @@ bool isXMas(List<List<char>> matrix, int rowIdx, int colIdx)
     return testPattern(left) && testPattern(right);
 }
 
-char? getChar(List<List<char>> matrix, int rowIdx, int colIdx)
-{
-    if (!isInBound(matrix, rowIdx, colIdx))
-    {
+char? getChar(List<List<char>> matrix, int rowIdx, int colIdx) {
+    if (!isInBound(matrix, rowIdx, colIdx)) {
         return null;
     }
 
     return matrix[rowIdx][colIdx];
 }
 
-List<T> ToList<T>(params T[] items)
-{
+List<T> ToList<T>(params T[] items) {
     return new List<T>(items);
 }
 #endregion
 
 Console.WriteLine("Hello, World!4");
 
-List<List<char>> readInputMatrix()
-{
+List<List<char>> readInputMatrix() {
     List<List<char>> matrix = new List<List<char>>();
 
-    foreach (string line in File.ReadAllLines("input.txt"))
-    {
+    foreach (string line in File.ReadAllLines("input.txt")) {
         List<char> row = new List<char>(line);
         matrix.Add(row);
     }
@@ -131,26 +111,21 @@ List<List<char>> readInputMatrix()
     return matrix;
 }
 
-bool isInBound(List<List<char>> matrix, int rowIdx, int colIdx)
-{
-    if (matrix.Count <= rowIdx)
-    {
+bool isInBound(List<List<char>> matrix, int rowIdx, int colIdx) {
+    if (matrix.Count <= rowIdx) {
         return false;
     }
     var row = matrix[rowIdx];
-    if (colIdx < 0 || row.Count <= colIdx)
-    {
+    if (colIdx < 0 || row.Count <= colIdx) {
         return false;
     }
 
     return true;
 }
 
-bool testPattern(IEnumerable<char> chars)
-{
+bool testPattern(IEnumerable<char> chars) {
     var list = chars.ToList();
-    if (list.Count < pattern.Length)
-    {
+    if (list.Count < pattern.Length) {
         return false;
     }
 
