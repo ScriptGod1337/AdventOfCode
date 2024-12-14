@@ -7,7 +7,7 @@ var robots = parseInput();
 //part1();
 part2();
 
-async void part2() {
+void part2() {
     var robots2 = robots.Select(x => new Robot(x.Item1, x.Item2, area)).ToList();
 
     var writer = new StreamWriter(Console.OpenStandardOutput());
