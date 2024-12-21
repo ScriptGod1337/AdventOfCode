@@ -53,9 +53,7 @@ class Machine {
     private Vector bounds;
     private Vector start;
     private Vector end;
-
-    // private readonly List<Graph> graphs = new List<Graph>();
-    private Graph graph;
+    private Graph? graph;
     private readonly Dictionary<long, HashSet<Cheat>> savedCosts = new Dictionary<long, HashSet<Cheat>>();
 
     public Machine(List<Vector> walls, Vector bounds, Vector start, Vector end) {
