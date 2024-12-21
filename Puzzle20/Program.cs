@@ -299,31 +299,6 @@ class Graph {
 
         return removed > 0; // Return true if at least one edge was removed
     }
-    public List<Node> GetPredecessors(Node target) {
-        var predecessors = new List<Node>();
-
-        foreach (var (node, edges) in adjList) {
-            foreach (var (neighbor, _) in edges) {
-                if (neighbor.Equals(target)) {
-                    predecessors.Add(node);
-                }
-            }
-        }
-
-        return predecessors;
-    }
-
-    public List<Node> GetSuccessors(Node node) {
-        if (!adjList.ContainsKey(node))
-            throw new InvalidOperationException($"Node {node} does not exist in the graph.");
-
-        var successors = new List<Node>();
-        foreach (var (neighbor, _) in adjList[node]) {
-            successors.Add(neighbor);
-        }
-
-        return successors;
-    }
 
     public (List<List<Node>>? paths, long cost) FindAllShortestPaths(Node source, Node destination) {
         if (!adjList.ContainsKey(source) || !adjList.ContainsKey(destination)) {
