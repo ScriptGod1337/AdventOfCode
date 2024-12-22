@@ -1,11 +1,6 @@
 ﻿
-using System.Collections.Immutable;
-
-Console.WriteLine("Test");
-
 var m = ParseFile();
-m.buildGraphs();
-// m.calculatePath();
+m.cheat();
 
 Machine ParseFile() {
     var walls = new List<Vector>();
@@ -49,123 +44,128 @@ class Machine {
         new Vector(-1, 0)
     };
 
-    private List<Vector> walls;
+    private HashSet<Vector> walls;
     private Vector bounds;
-    private Vector start;
-    private Vector end;
+    private Vector raceStart;
+    private Vector raceEnd;
     private Graph? graph;
-    private readonly Dictionary<long, HashSet<Cheat>> savedCosts = new Dictionary<long, HashSet<Cheat>>();
 
     public Machine(List<Vector> walls, Vector bounds, Vector start, Vector end) {
-        this.walls = walls;
+        this.walls = new HashSet<Vector>(walls);
         this.bounds = bounds;
-        this.start = start;
-        this.end = end;
+        this.raceStart = start;
+        this.raceEnd = end;
     }
 
-    public void buildGraphs() {
-        savedCosts.Clear();
-        graph = buildGraph(ImmutableList<Vector>.Empty);
-        var (p, originalCost) = calculateCosts(end);
-        System.Diagnostics.Debug.Assert(originalCost > -1);
+    private List<(Cheat cheat, long cost)> findPossibleCheats(Vector cheatStart, int maxStep) {
+        var allCheats = new List<(Cheat, long)>();
 
-        int step = 0;
-        foreach (var wall in walls) {
-            if (step++ % 500 == 0) {
-                Console.WriteLine($"{step} of {walls.Count}");
+        if (cheatStart.Equals(raceStart))
+            Console.WriteLine();
+
+        for (var x = -maxStep; x <= maxStep; x++) {
+            for (var y = -maxStep; y <= maxStep; y++) {
+                var cheatEnd = cheatStart + new Vector(x, y);
+                var cost = Math.Abs(x) + Math.Abs(y);
+                if ((cost > maxStep)
+                    || (cost <= 1)
+                    || !isInBound(cheatEnd)
+                    || isWall(cheatEnd)
+                ) {
+                    continue;
+                }
+
+                allCheats.Add((new Cheat(cheatStart, cheatEnd), cost));
+            }
+        }
+
+        return allCheats;
+    }
+
+    public void cheat() {
+        buildGraph();
+
+        // get potential cheats
+        var allPossibleCheats = calcPossibleCheats(20);
+
+        // get path and build lookup for it
+        var originalPath = calculateOriginal().Select(element => element.Pos).ToList();
+        var originalPathLookup = originalPath //
+            .Select((element, index) => new { element, index })
+            .ToDictionary(e => e.element, e => e.index);
+
+        var costs = new Dictionary<long, long>();
+        for (var n = 0; n < originalPath.Count; n++) {
+            if (n % 100 == 0) {
+                Console.WriteLine($"{n + 1} of {originalPath.Count}");
             }
 
-            removeWall(wall, originalCost);
+            Dictionary<Vector, long>? possibleCheats;
+            if (!allPossibleCheats.TryGetValue(originalPath[n], out possibleCheats) || possibleCheats == null) {
+                continue;
+            }
+
+            foreach (var (endPos, cheatCost) in possibleCheats) {
+                int cheatEndPosIdx;
+                if (!originalPathLookup.TryGetValue(endPos, out cheatEndPosIdx)
+                    || cheatEndPosIdx <= n) {
+                    continue;
+                }
+
+                var diff = cheatEndPosIdx - n - cheatCost;
+                costs.TryAdd(diff, 0);
+                costs[diff]++;
+            }
         }
-        // removeWall(new Vector(8, 1), originalCost);
 
         Console.WriteLine();
-        foreach (var k in savedCosts.Keys.ToList().Order()) {
-            Console.WriteLine($"{savedCosts[k].Count} {k}");
+        foreach (var k in costs.Keys.ToList()
+            // .Where(x => (x > 49))
+            .Order()) {
+            Console.WriteLine($"{costs[k]} {k}");
         }
 
-        var sum = savedCosts.Where(kvp => kvp.Key >= 100).Select(kvp => kvp.Value.Count).Sum();
+        var sum = costs.Where(kvp => (kvp.Key >= 100)).Select(kvp => kvp.Value).Sum();
         Console.WriteLine(sum);
     }
-    private void removeWall(Vector wall, long originalCost) {
-        var toRemoveCombinations = new List<List<Vector>>() {
-            new List<Vector>() { wall } // only remove current wall
-        };
 
-        // foreach (var step1 in ALL_STEPS) {
-        //     var nextPos1 = wall + step1;
-        //     if (!isWall(nextPos1)) {
-        //         continue;
-        //     }
-        //     var toRemoveCombination = new List<Vector>() { wall, nextPos1 };
-
-        //     bool isValidCheat = false;
-        //     foreach (var step2 in ALL_STEPS) {
-        //         var nextPos2 = nextPos1 + step2;
-        //         if (!canByUsed(nextPos2, toRemoveCombination)) {
-        //             isValidCheat = true;
-        //             break;
-        //         }
-        //     }
-
-        //     if (isValidCheat) {
-        //         toRemoveCombinations.Add(toRemoveCombination);
-        //     }
-        // }
-
-        foreach (var toRemoveCombination in toRemoveCombinations) {
-            // Console.WriteLine(string.Join(" ", toRemoveCombination));
-
-            // add new edges
-            var addedEdges = new List<(Node from, Node to)>();
-            foreach (var wallToRemove in toRemoveCombination) {
-                addedEdges.AddRange(addEdges(graph, wallToRemove, toRemoveCombination));
-                ALL_STEPS.ForEach(nextStep => addedEdges.AddRange(
-                     addEdges(graph, wallToRemove + nextStep, toRemoveCombination)));
-            }
-
-            // calculate costs
-            var (p, newCost) = calculateCosts(end);
-            if (newCost > -1 && newCost < originalCost) {
-                var wallIdx = p.FindIndex(node => toRemoveCombination.Contains(node.Pos));
-                var start = p[wallIdx - 1].Pos;
-                var endIdx = wallIdx;
-
-                // walls not part of the path must be count also as coss
-                var wallsPassed = 1;
-                while (toRemoveCombination.Contains(p[++endIdx].Pos)) {
-                    wallsPassed++;
+    private Dictionary<Vector, Dictionary<Vector, long>> calcPossibleCheats(int depth) {
+        var allPossibleCheats = new Dictionary<Vector, Dictionary<Vector, long>>();
+        for (int x = 0; x < bounds.X; x++) {
+            for (int y = 0; y < bounds.Y; y++) {
+                var cheatStart = new Vector(x, y);
+                if (!isWall(cheatStart)) {
+                    findPossibleCheats(cheatStart, depth).ToList().ForEach(x => {
+                        allPossibleCheats.TryAdd(x.cheat.start, []);
+                        allPossibleCheats[x.cheat.start].Add(x.cheat.end, x.cost);
+                    });
                 }
-                var end = p[endIdx].Pos;
-                var cheat = new Cheat(start, end);
-
-                var diffCost = originalCost - newCost;
-
-                savedCosts.TryAdd(diffCost, []);
-                savedCosts[diffCost].Add(cheat);
-
-                // Render(cheat, p, toRemoveCombination);
             }
-
-            // reset graph
-            addedEdges.ForEach(x => graph.RemoveEdge(x.from, x.to, 1));
         }
+
+        return allPossibleCheats;
     }
 
-     private void Render(Cheat c, List<Node> p, List<Vector> removed) {
+    private List<Node> calculateOriginal() {
+        var results = graph.FindShortestPath(new Node(raceStart), new Node(raceEnd));
+        System.Diagnostics.Debug.Assert(results.cost > 0);
+        return results.path;
+    }
+
+    private void Render(List<Node> p, Vector pos) {
         for (int y = 0; y < bounds.Y; y++) {
             for (int x = 0; x < bounds.X; x++) {
                 var v = new Vector(x, y);
-                if (c.start.Equals(v)) {
-                    Console.Write("P");
-                } else if (c.end.Equals(v)) {
+                if (pos.Equals(v)) {
                     Console.Write("S");
-                } else if (removed.Contains(v)) {
-                    Console.Write("X");
+                } else if (p.Exists(node => node.Pos.Equals(v))) {
+                    if (isWall(v)) {
+                        Console.Write("X");
+                    } else {
+                        Console.Write("-");
+                    }
                 } else if (walls.Contains(v)) {
                     Console.Write("#");
-                } else if (p.Exists(node => node.Pos.Equals(v))) {
-                    Console.Write("-");
                 } else {
                     Console.Write(".");
                 }
@@ -194,59 +194,32 @@ class Machine {
         }
     }
 
-    private (List<Node>? path, long cost) calculateCosts(Vector stop) {
-        var (path, cost) = graph.FindShortestPath(new Node(start), new Node(stop));
-        return (path, cost);
-    }
-
-    private Graph buildGraph(IReadOnlyCollection<Vector> wallSkipped) {
-        var graph = new Graph();
+    private void buildGraph() {
+        graph = new Graph();
 
         for (int x = 0; x < bounds.X; x++) {
             for (int y = 0; y < bounds.Y; y++) {
-                addEdges(graph, new Vector(x, y), wallSkipped);
+                addEdges(graph, new Vector(x, y));
             }
         }
-
-        return graph;
+        // graph.PrintGraph();
     }
 
-    private List<(Node from, Node to)> addEdges(Graph graph, Vector from, IReadOnlyCollection<Vector> wallsIgnored) {
-        var added = new List<(Node from, Node to)>();
-
-        if (!canByUsed(from, wallsIgnored)) {
-            return added;
+    private void addEdges(Graph graph, Vector from) {
+        if (!isInBound(from)) {
+            return;
         }
 
         var currentNode = new Node(from);
-        foreach (var step in ALL_STEPS) {
-            var nextNode = new Node(from + step);
-            if (addEdges(graph, currentNode, nextNode, wallsIgnored)) {
-                added.Add((currentNode, nextNode));
-            }
-        }
-
-        return added;
+        ALL_STEPS.ForEach(step => addEdges(graph, from, from + step));
     }
 
-    private bool addEdges(Graph graph, Node currentNode, Node nextNode, IReadOnlyCollection<Vector> wallsIgnored) {
-        if (canByUsed(nextNode.Pos, wallsIgnored)) {
-            return graph.AddEdge(currentNode, nextNode, 1);
-        } else if (wallsIgnored.Contains(nextNode.Pos)) {
-            return graph.AddEdge(currentNode, nextNode, 1);
+    private void addEdges(Graph graph, Vector from, Vector to) {
+        if (!isInBound(to) || isWall(to)) {
+            return;
         }
 
-        return false;
-    }
-
-    private bool canByUsed(Vector pos, IReadOnlyCollection<Vector> wallsIgnored) {
-        if (!isInBound(pos)) {
-            return false;
-        } else if (isWall(pos)) {
-            return wallsIgnored.Contains(pos);
-        }
-
-        return true;
+        graph.AddEdge(new Node(from), new Node(to), 1);
     }
 
     private bool isWall(Vector pos) {
@@ -300,64 +273,7 @@ class Graph {
         return removed > 0; // Return true if at least one edge was removed
     }
 
-    public (List<List<Node>>? paths, long cost) FindAllShortestPaths(Node source, Node destination) {
-        if (!adjList.ContainsKey(source) || !adjList.ContainsKey(destination)) {
-            Console.WriteLine("Source or destination does not exist in the graph.");
-            return (null, -1);
-        }
-
-        var dist = new Dictionary<Node, long>();
-        var paths = new Dictionary<Node, List<List<Node>>>();
-        var pq = new SortedSet<(long, Node)>(Comparer<(long, Node)>.Create((a, b) => {
-            int cmp = a.Item1.CompareTo(b.Item1); // Compare by cost
-            return cmp != 0 ? cmp : a.Item2.GetHashCode().CompareTo(b.Item2.GetHashCode()); // Tie-breaking
-        }));
-
-        foreach (var node in adjList.Keys) {
-            dist[node] = long.MaxValue;
-            paths[node] = new List<List<Node>>();
-        }
-
-        dist[source] = 0;
-        paths[source].Add(new List<Node> { source });
-        pq.Add((0, source));
-
-        while (pq.Count > 0) {
-            var (currentCost, currentNode) = pq.Min;
-            pq.Remove(pq.Min);
-
-            foreach (var (neighbor, cost) in adjList[currentNode]) {
-                long newCost = currentCost + cost;
-
-                if (newCost < dist[neighbor]) {
-                    pq.Remove((dist[neighbor], neighbor));
-
-                    dist[neighbor] = newCost;
-                    paths[neighbor].Clear();
-
-                    foreach (var path in paths[currentNode]) {
-                        var newPath = new List<Node>(path) { neighbor };
-                        paths[neighbor].Add(newPath);
-                    }
-
-                    pq.Add((newCost, neighbor));
-                } else if (newCost == dist[neighbor]) {
-                    foreach (var path in paths[currentNode]) {
-                        var newPath = new List<Node>(path) { neighbor };
-                        paths[neighbor].Add(newPath);
-                    }
-                }
-            }
-        }
-
-        if (dist[destination] == long.MaxValue) {
-            return (null, -1); // No path found
-        }
-
-        return (paths[destination], dist[destination]);
-    }
-
-    public (List<Node>? path, long cost) FindShortestPath(Node source, Node destination) {
+    public (List<Node>? path, long cost) FindShortestPath(Node source, Node destination, long? maxCosts = null) {
         if (!adjList.ContainsKey(source) || !adjList.ContainsKey(destination)) {
             Console.WriteLine("Source or destination does not exist in the graph.");
             return (null, -1);
@@ -382,11 +298,22 @@ class Graph {
             var (currentCost, currentNode) = pq.Min;
             pq.Remove(pq.Min);
 
-            if (currentNode.Equals(destination))
+            // If the current cost exceeds maxCosts, prune this path
+            if (maxCosts.HasValue && currentCost > maxCosts.Value) {
+                continue;
+            }
+
+            if (currentNode.Equals(destination)) {
                 break;
+            }
 
             foreach (var (neighbor, cost) in adjList[currentNode]) {
                 long newCost = currentCost + cost;
+
+                // Skip if new cost exceeds maxCosts
+                if (maxCosts.HasValue && newCost > maxCosts.Value) {
+                    continue;
+                }
 
                 if (newCost < dist[neighbor]) {
                     pq.Remove((dist[neighbor], neighbor));
@@ -397,8 +324,8 @@ class Graph {
             }
         }
 
-        if (dist[destination] == long.MaxValue) {
-            return (null, -1);
+        if (dist[destination] == long.MaxValue || (maxCosts.HasValue && dist[destination] > maxCosts.Value)) {
+            return (null, -1); // No path found within maxCosts
         }
 
         var path = new List<Node>();
@@ -409,6 +336,7 @@ class Graph {
         path.Reverse();
         return (path, dist[destination]);
     }
+
 
     public void PrintGraph() {
         foreach (var node in adjList) {
