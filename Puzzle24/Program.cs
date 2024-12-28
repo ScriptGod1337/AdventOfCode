@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-class Program
-{
-    static void Main()
-    {
+class Program {
+    static void Main() {
         // Read all non-empty lines from input.txt
         var lines = File.ReadAllLines("input.txt")
                         .Where(l => !string.IsNullOrWhiteSpace(l))
@@ -22,11 +20,10 @@ class Program
         // However, if your file truly has a blank line separating sections, 
         // you can re-check your approach. For simplicity, let's assume 
         // the first line that doesn't contain a ':' is the start of gates.
-        
+
         // If all wire lines contain ":" and no gate lines do, let's do this:
         int idx = 0;
-        while (idx < lines.Count && lines[idx].Contains(":"))
-        {
+        while (idx < lines.Count && lines[idx].Contains(":")) {
             idx++;
         }
 
@@ -35,8 +32,7 @@ class Program
 
         // 1) Parse initial wires
         var wireValues = new Dictionary<string, int>();
-        foreach (var line in initialWireLines)
-        {
+        foreach (var line in initialWireLines) {
             // e.g.: "x00: 1"
             var parts = line.Split(new[] { ':', ' ' }, StringSplitOptions.RemoveEmptyEntries);
             string wireName = parts[0];
@@ -46,8 +42,7 @@ class Program
 
         // 2) Parse gates
         var gates = new List<(string op, string in1, string in2, string output)>();
-        foreach (var line in gateLines)
-        {
+        foreach (var line in gateLines) {
             // e.g.: "x00 AND y00 -> z00"
             var parts = line.Split(' ');
             // structure: [input1, operation, input2, ->, output]
@@ -60,11 +55,9 @@ class Program
 
         // 3) Simulate
         bool changed;
-        do
-        {
+        do {
             changed = false;
-            foreach (var (op, in1, in2, output) in gates)
-            {
+            foreach (var (op, in1, in2, output) in gates) {
                 if (!wireValues.ContainsKey(in1) || !wireValues.ContainsKey(in2))
                     continue;
 
@@ -72,15 +65,13 @@ class Program
                 int rhs = wireValues[in2];
                 int result = 0;
 
-                switch (op)
-                {
+                switch (op) {
                     case "AND": result = (lhs == 1 && rhs == 1) ? 1 : 0; break;
-                    case "OR":  result = (lhs == 1 || rhs == 1) ? 1 : 0; break;
-                    case "XOR": result = (lhs != rhs) ? 1 : 0;           break;
+                    case "OR": result = (lhs == 1 || rhs == 1) ? 1 : 0; break;
+                    case "XOR": result = (lhs != rhs) ? 1 : 0; break;
                 }
 
-                if (!wireValues.ContainsKey(output))
-                {
+                if (!wireValues.ContainsKey(output)) {
                     wireValues[output] = result;
                     changed = true;
                 }
@@ -90,13 +81,12 @@ class Program
         // 4) Collect z-wires in ascending numeric order (z00 < z01 < z02 ...)
         var zWires = wireValues.Keys
             .Where(k => k.StartsWith("z"))
-            .OrderBy(k => int.Parse(k.Substring(1))) 
+            .OrderBy(k => int.Parse(k.Substring(1)))
             .ToList();
 
         long finalNumber = 0;
         int bitPosition = 0;
-        foreach (var zWire in zWires)
-        {
+        foreach (var zWire in zWires) {
             int bit = wireValues[zWire];
             finalNumber |= ((long)bit << bitPosition);
             bitPosition++;
