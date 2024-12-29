@@ -1,46 +1,61 @@
-﻿using System.Reflection.Emit;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
-Console.WriteLine("Hello, World!");
 var (registers, program) = ParseFile();
-// Machine m = new Machine(registers);
-// Console.WriteLine(string.Join(",", m.process(program, null)));
-part2(registers, program);
 
-void part2(Dictionary<string, int> registers, List<int> program) {
+// part1(registers, program);
+part2(program, 0);
 
-    Parallel.For(0, int.MaxValue, (n, state) => {
-    // for (int n = 0; n < int.MaxValue; n++) {
-        var registerModified = new Dictionary<string, int>();
-        registers.ToList().ForEach(x => registerModified.Add(x.Key, x.Value));
-        registerModified["A"] = n;
+bool part2(List<ulong> program, ulong current) {
+    for (var n = 0; n < 8; n++) {
+        var nextTry = current + (ulong)n;
 
-        Machine m = new Machine(registerModified);
-        var result = m.process(program, program.Count);
-        if (result.SequenceEqual(program)) {
-            Console.WriteLine(n);
-            state.Break();
+        var registerModified = new Dictionary<string, ulong>() {
+            { "A",  nextTry},
+            { "B",  0 },
+            { "C",  0 },
+        };
+        var m = new Machine(registerModified);
+        var procResult = m.process(program);
+
+        if (!program.TakeLast(procResult.Count).SequenceEqual(procResult)) {
+            continue;
         }
-    });
+
+        if (procResult.Count == program.Count) {
+            Console.WriteLine(nextTry);
+            return true;
+        }
+
+        if (part2(program, nextTry * 8)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-(Dictionary<string, int> Registers, List<int> Program) ParseFile() {
-    var registers = new Dictionary<string, int>();
-    var program = new List<int>();
+void part1(Dictionary<string, ulong> registers, List<ulong> program) {
+    Machine m = new Machine(registers);
+    Console.WriteLine(string.Join(",", m.process(program)));
+}
+
+(Dictionary<string, ulong> Registers, List<ulong> Program) ParseFile() {
+    var registers = new Dictionary<string, ulong>();
+    var program = new List<ulong>();
 
     foreach (var line in File.ReadLines("input.txt")) {
         if (line.StartsWith("Register")) {
             // Parse register name and value
             var match = Regex.Match(line, @"Register (\w+): (\d+)");
             if (match.Success) {
-                registers[match.Groups[1].Value] = int.Parse(match.Groups[2].Value);
+                registers[match.Groups[1].Value] = ulong.Parse(match.Groups[2].Value);
             }
         } else if (line.StartsWith("Program:")) {
             // Parse program list
             var match = Regex.Match(line, @"Program: ([\d,]+)");
             if (match.Success) {
                 foreach (var num in match.Groups[1].Value.Split(',')) {
-                    program.Add(int.Parse(num));
+                    program.Add(ulong.Parse(num));
                 }
             }
         }
@@ -62,36 +77,33 @@ class Machine {
         cdv = 7,
     };
 
-    private readonly Dictionary<string, int> registers = new Dictionary<string, int>();
+    private readonly Dictionary<string, ulong> registers = new Dictionary<string, ulong>();
 
-    public Machine(Dictionary<string, int> registers) {
+    public Machine(Dictionary<string, ulong> registers) {
         registers.ToList().ForEach(x => this.registers.Add(x.Key, x.Value));
     }
 
-    public List<int> process(List<int> program, int? maxOutput) {
-        var result = new List<int>();
+    public List<ulong> process(List<ulong> program) {
+        var result = new List<ulong>();
         int outputs = 0;
 
         for (int n = 0; n < program.Count; n += 2) {
-            if (maxOutput.HasValue && maxOutput.Value <= outputs) {
-                break; // allow only a max. number of iteration
-            }
             OpCode opcode = (OpCode)program[n];
-            int operandCode = program[n + 1];
+            ulong operandCode = program[n + 1];
             switch (opcode) {
                 case OpCode.jnz:
                     if (registers["A"] != 0) {
-                        n = operandCode - 2;
+                        n = (int)operandCode - 2;
                     }
                     break;
                 case OpCode.adv:
-                    registers["A"] = (int)(registers["A"] / Math.Pow(2, getOperand(operandCode)));
+                    registers["A"] = (ulong)(registers["A"] / Math.Pow(2, getOperand(operandCode)));
                     break;
                 case OpCode.bdv:
-                    registers["B"] = (int)(registers["A"] / Math.Pow(2, getOperand(operandCode)));
+                    registers["B"] = (ulong)(registers["A"] / Math.Pow(2, getOperand(operandCode)));
                     break;
                 case OpCode.cdv:
-                    registers["C"] = (int)(registers["A"] / Math.Pow(2, getOperand(operandCode)));
+                    registers["C"] = (ulong)(registers["A"] / Math.Pow(2, getOperand(operandCode)));
                     break;
                 case OpCode.bxl:
                     registers["B"] = registers["B"] ^ operandCode;
@@ -103,7 +115,6 @@ class Machine {
                     registers["B"] = registers["B"] ^ registers["C"];
                     break;
                 case OpCode.out_:
-                    // Console.WriteLine(getOperand(operandCode) % 8);
                     outputs++;
                     result.Add(getOperand(operandCode) % 8);
                     break;
@@ -113,7 +124,7 @@ class Machine {
         return result;
     }
 
-    private int getOperand(int operandCode) {
+    private ulong getOperand(ulong operandCode) {
         if (0 <= operandCode && operandCode <= 3) {
             return operandCode;
         }
@@ -129,5 +140,4 @@ class Machine {
 
         throw new ArgumentException();
     }
-
 }
