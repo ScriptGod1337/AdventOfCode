@@ -1,0 +1,175 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class AllShortestSequences
+{
+    // Numeric keypad as a 2D grid with possible null gaps
+    //  (row=0)  7   8   9
+    //  (row=1)  4   5   6
+    //  (row=2)  1   2   3
+    //  (row=3) null 0   A
+    static char?[,] keypad = new char?[,]
+    {
+        { '7','8','9'},
+        { '4','5','6'},
+        { '1','2','3'},
+        { null,'0','A'},
+    };
+
+    // Moves allowed: '^','v','<','>'
+    // We'll store the row/col delta plus the character that represents that move.
+    static (char move, int dr, int dc)[] directions = new (char,int,int)[]
+    {
+        ('^', -1, 0),
+        ('v',  1, 0),
+        ('<',  0,-1),
+        ('>',  0, 1),
+    };
+
+    // Check if a row/col is in-bounds and not a null gap
+    static bool IsValidPos(int r, int c)
+    {
+        if (r < 0 || r >= keypad.GetLength(0)) return false;
+        if (c < 0 || c >= keypad.GetLength(1)) return false;
+        return keypad[r,c].HasValue; // i.e. not null
+    }
+
+    // Return the character at keypad[r,c], which we know is valid
+    static char GetButton(int r, int c) => keypad[r,c].Value;
+
+    // BFS state: position of arm + code typed so far + the path of moves taken.
+    // We'll store path in a string for simplicity.
+    class State
+    {
+        public int ArmR;
+        public int ArmC;
+        public string TypedSoFar;  // e.g. "0", then "02", ...
+        public string Path;        // e.g. "<A^A>..."
+
+        public State(int r, int c, string typed, string path)
+        {
+            ArmR = r; 
+            ArmC = c; 
+            TypedSoFar = typed; 
+            Path = path;
+        }
+    }
+
+    static void Main()
+    {
+        // Example: find *all* shortest sequences that type "029A"
+        string targetCode = "029A";
+        var solutions = FindAllShortestSequences(targetCode);
+
+        Console.WriteLine($"Target code: {targetCode}");
+        Console.WriteLine($"Number of shortest solutions = {solutions.Count}");
+        foreach (var sol in solutions)
+        {
+            Console.WriteLine(sol);
+        }
+    }
+
+    static List<string> FindAllShortestSequences(string targetCode)
+    {
+        // Starting state:
+        //  - The puzzle says the arm is initially pointing at 'A' in the bottom-right => (3,2)
+        //  - typedSoFar is ""
+        //  - path is ""
+        var start = new State(3, 2, "", "");
+
+        // We'll do a BFS. The queue holds states to explore.
+        var queue = new Queue<State>();
+        queue.Enqueue(start);
+
+        // Keep track of visited states to avoid cycles: (r,c, typedSoFar)
+        var visited = new HashSet<(int, int, string)>();
+        visited.Add((start.ArmR, start.ArmC, start.TypedSoFar));
+
+        // We'll keep track of solutions and the BFS depth at which we found them.
+        var solutions = new List<string>();
+        bool foundAnySolution = false;
+        int solutionDepth = -1;
+
+        while (queue.Count > 0)
+        {
+            int levelCount = queue.Count;  // number of states in this BFS layer
+            // We'll process one BFS layer at a time
+            for (int i = 0; i < levelCount; i++)
+            {
+                var st = queue.Dequeue();
+
+                // If this state has typed the entire target code, we found a solution
+                if (st.TypedSoFar == targetCode)
+                {
+                    // If it's the first solution we find, record the BFS level (i.e. st.Path.Length)
+                    if (!foundAnySolution)
+                    {
+                        foundAnySolution = true;
+                        solutionDepth = st.Path.Length;
+                    }
+                    // If it matches the known BFS depth of solutions, add it
+                    if (st.Path.Length == solutionDepth)
+                    {
+                        solutions.Add(st.Path);
+                    }
+                    // If st.Path is already longer than the BFS solutionDepth,
+                    // then we can ignore it. (But with BFS, that won't normally happen.)
+                    continue;
+                }
+
+                // If we've already found solutions and this path is longer
+                // than the known solutionDepth, skip exploring further.
+                if (foundAnySolution && st.Path.Length >= solutionDepth)
+                    continue;
+
+                // Expand neighbors:
+                // 1) Move the arm using '^','v','<','>'
+                foreach (var (mv, dr, dc) in directions)
+                {
+                    int nr = st.ArmR + dr;
+                    int nc = st.ArmC + dc;
+                    if (IsValidPos(nr, nc))
+                    {
+                        // Move the arm
+                        var neighbor = new State(
+                            nr, nc,
+                            st.TypedSoFar,
+                            st.Path + mv  // append the move char
+                        );
+                        // Mark visited
+                        if (!visited.Contains((neighbor.ArmR, neighbor.ArmC, neighbor.TypedSoFar)))
+                        {
+                            visited.Add((neighbor.ArmR, neighbor.ArmC, neighbor.TypedSoFar));
+                            queue.Enqueue(neighbor);
+                        }
+                    }
+                }
+
+                // 2) Press 'A' => that types the button currently aimed at
+                char btn = GetButton(st.ArmR, st.ArmC);
+                // We'll produce a new typedSoFar
+                string newTyped = st.TypedSoFar + btn;
+                // If newTyped isn't overshooting the target, or if partial codes are allowed, we can keep going
+                // We'll allow any typed prefix (the BFS won't go infinite if there's no match).
+                var pressState = new State(
+                    st.ArmR, st.ArmC,
+                    newTyped,
+                    st.Path + 'A'
+                );
+
+                // Mark visited
+                if (!visited.Contains((pressState.ArmR, pressState.ArmC, pressState.TypedSoFar)))
+                {
+                    visited.Add((pressState.ArmR, pressState.ArmC, pressState.TypedSoFar));
+                    queue.Enqueue(pressState);
+                }
+            }
+
+            // If we found solutions in this BFS layer, no need to go deeper
+            // if (foundAnySolution) break;
+        }
+
+        return solutions;
+    }
+}
