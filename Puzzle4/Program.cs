@@ -1,6 +1,34 @@
 ﻿var world = ParseFile("input.txt");
 
-part1(world);
+part2(world);
+
+#region part2
+void part2(World world) {
+    var data = world.Data;
+    int rows = data.GetLength(0);
+    int cols = data.GetLength(1);
+    
+    var valid = 0;
+    var removed = false;
+    do {
+        removed = false;
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                var pos = new Vector(i, j);
+                if (!world.IsMarked(pos)) {
+                    continue; // only checked marked once
+                } else if (checkSuroundings(world, pos)) {
+                    valid++;
+                    data[i, j] = false;
+                    removed = true;
+                }
+            }
+        }
+    } while(removed);
+
+    Console.WriteLine($"valid {valid}");
+}
+#endregion
 
 #region part1
 void part1(World world) {
@@ -22,6 +50,7 @@ void part1(World world) {
 
     Console.WriteLine($"valid {valid}");
 }
+#endregion
 
 bool checkSuroundings(World world, Vector pos) {
     var marked = 0;
@@ -40,7 +69,6 @@ bool checkSuroundings(World world, Vector pos) {
 
     return (marked < 4);
 }
-#endregion
 
 World ParseFile(string filePath) {
     // Read all lines from the file
@@ -86,11 +114,11 @@ class World {
 }
 
 record Vector(long X, long Y) {
-    public static Vector operator +(Vector p1, Vector p2) => new Vector(p1.X + p2.X, p1.Y + p2.Y);
-    public static Vector operator -(Vector p1, Vector p2) => new Vector(p1.X - p2.X, p1.Y - p2.Y);
-    public static Vector operator %(Vector p1, Vector p2) => new Vector(p1.X % p2.X, p1.Y % p2.Y);
-    public static Vector operator *(Vector p, long factor) => new Vector(p.X * factor, p.Y * factor);
-    public static Vector operator *(long factor, Vector p) => new Vector(p.X * factor, p.Y * factor);
-    public static Vector operator /(Vector p, long factor) => new Vector(p.X / factor, p.Y / factor);
-    public static Vector operator /(long factor, Vector p) => new Vector(p.X / factor, p.Y / factor);
+    public static Vector operator +(Vector p1, Vector p2) => new(p1.X + p2.X, p1.Y + p2.Y);
+    public static Vector operator -(Vector p1, Vector p2) => new(p1.X - p2.X, p1.Y - p2.Y);
+    public static Vector operator %(Vector p1, Vector p2) => new(p1.X % p2.X, p1.Y % p2.Y);
+    public static Vector operator *(Vector p, long factor) => new(p.X * factor, p.Y * factor);
+    public static Vector operator *(long factor, Vector p) => new(p.X * factor, p.Y * factor);
+    public static Vector operator /(Vector p, long factor) => new(p.X / factor, p.Y / factor);
+    public static Vector operator /(long factor, Vector p) => new(p.X / factor, p.Y / factor);
 }
