@@ -1,4 +1,4 @@
-﻿var world = ParseFile("input.txt");
+﻿var world = ParseFile("test.txt");
 
 part2(world);
 
@@ -17,7 +17,7 @@ void part2(World world) {
                 var pos = new Vector(i, j);
                 if (!world.IsMarked(pos)) {
                     continue; // only checked marked once
-                } else if (checkSuroundings(world, pos)) {
+                } else if (checkSurroundings(world, pos)) {
                     valid++;
                     data[i, j] = false;
                     removed = true;
@@ -42,7 +42,7 @@ void part1(World world) {
             var pos = new Vector(i, j);
             if (!world.IsMarked(pos)) {
                 continue; // only checked marked once
-            } else if (checkSuroundings(world, pos)) {
+            } else if (checkSurroundings(world, pos)) {
                 valid++;
             }
         }
@@ -52,7 +52,7 @@ void part1(World world) {
 }
 #endregion
 
-bool checkSuroundings(World world, Vector pos) {
+bool checkSurroundings(World world, Vector pos) {
     var marked = 0;
     for (var x = -1; x <= 1; x++) {
         for (var y = -1; y <= 1; y++) {
