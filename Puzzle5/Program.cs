@@ -7,71 +7,43 @@ part2(ranges);
 
 #region part2
 void part2(List<(long, long)> ranges) {
-
-    var optimizedRanges = optimizeRangesIncrease(ranges);
+    var optimizedRanges = optimizeRanges(ranges);
 
     BigInteger sum = 0;
-    foreach ((long, long) range in optimizedRanges) {
-        sum +=(range.Item2 - range.Item1 + 1);
+    foreach (var range in optimizedRanges) {
+        sum += (range.Item2 - range.Item1 + 1);
     }
 
     Console.WriteLine($"count {sum}");
 }
 
-List<(long, long)> optimizeRangesIncrease(List<(long, long)> ranges) {
-    var queue =  new List<(long, long)>(ranges);
+List<(long, long)> optimizeRanges(List<(long, long)> ranges) {
+    var queue =  new Queue<(long, long)>(ranges);
     var result = new List<(long, long)>(ranges);
 
-    while (queue.Count > 0) {
-        // dequeue
-        (var start, var end) = queue[0];
-        queue.RemoveAt(0);
-
+    foreach (var (start, end) in queue) {
+        // remove temporarily in the current results
         result.Remove((start, end));
 
+        // is there any overlap in the current(!) result set?
         var overlap = result
             .Where(x => inRange(start, x))
             .FirstOrDefault();
         if ((overlap.Item1 == 0) && (overlap.Item2 == 0)) {
+            // ...no, then re-add it
             result.Add((start, end));
-            continue; // no overlap found
         } else {
-            var newRange = (Math.Min(start, overlap.Item1), Math.Max(end, overlap.Item2));
-            result.Add(newRange);
+            // ...yes, then combine the current and the overlap
             result.Remove(overlap);
+            result.Add((Math.Min(start, overlap.Item1), Math.Max(end, overlap.Item2)));
         }
     }
 
+    // repeat until no modification was done
     if (ranges.Count == result.Count) {
         return result;
     } else {
-        return optimizeRangesIncrease(result);
-    }
-}
-
-List<(long, long)> optimizeRangesMax(List<(long, long)> ranges) {
-    var queue =  new List<(long, long)>(ranges);
-    var result = new List<(long, long)>(ranges.Count);
-
-    while (queue.Count > 0) {
-        (var start, var end) = queue[0];
-        queue.Remove((start, end));
-
-        var overlap = queue.Find(x => inRange(end, x));
-        if ((overlap.Item1 == 0) && (overlap.Item2 == 0)) {
-            result.Add((start, end));
-            continue; // no overlap found
-        }
-        queue.Remove(overlap);
-
-        var newRange = (Math.Min(start, overlap.Item1), Math.Max(end, overlap.Item2));
-        result.Add(newRange);
-    }
-
-    if (ranges.Count == result.Count) {
-        return result;
-    } else {
-        return optimizeRangesMax(result);
+        return optimizeRanges(result);
     }
 }
 #endregion
