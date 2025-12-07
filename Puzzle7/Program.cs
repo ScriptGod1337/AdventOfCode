@@ -1,4 +1,52 @@
-﻿part1("input.txt");
+﻿part2("input.txt");
+
+void part2(string file) {
+    Matrix<long> matrix = Matrix<long>.LoadFile(
+        file,
+        c => c switch {
+            'S' => -2,
+            '^' => -1,
+            _ => 0
+        }
+    );
+    Vector? start = matrix.FindFirst(-2);
+    if (start == null) {
+        throw new Exception("Invalid input");
+    }
+
+    // set beam below start... by assuming it's not a direct split
+    matrix[start.X + 1, start.Y] = 1;
+
+    for (var row = start.X + 1; row < matrix.RowCount; row++) {
+        for (var col = 0; col < matrix.ColumnCount; col++) {
+            var above = matrix[row - 1, col];
+            if (above <= 0) {
+                continue; // no bean above -> skip
+            }
+
+            // increase number of hit bey beans
+            var current = matrix[row, col];
+            if (current < 0) {
+                // split
+                matrix[row, col - 1] += above;
+                matrix[row, col + 1] += above;
+            } else {
+                matrix[row, col] += above;
+            }
+        }
+
+        // using (StreamWriter writer = new StreamWriter(Console.OpenStandardOutput())) {
+        //     matrix.Print(writer, x => x + "\t");
+        // }
+    }
+
+    long sum = 0;
+    foreach (var element in matrix.IterateRow(matrix.RowCount - 1)) {
+        sum += element;
+    }
+
+    Console.WriteLine($"sum {sum}");
+}
 
 void part1(string file) {
     Matrix<char> matrix = Matrix<char>.LoadFile(
@@ -16,12 +64,12 @@ void part1(string file) {
     var split = 0;
     for (var row = start.X + 1; row < matrix.RowCount; row++) {
         for (var col = 0; col < matrix.ColumnCount; col++) {
-            char above = matrix[row - 1, col];
+            var above = matrix[row - 1, col];
             if (above != '|') {
                 continue; // no bean above -> skip
             }
 
-            char current = matrix[row, col];
+            var current = matrix[row, col];
             if (current == '^') {
                 // split
                 matrix[row, col - 1] = '|';
@@ -71,11 +119,15 @@ class Matrix<TElement> {
         return null;
     }
 
-    public IEnumerable<(long Column, TElement Value)> IterateRow(long row) {
+    public IEnumerable<(long ColumnIndex, TElement Value)> IterateRowWithIdx(long row) {
         for (long col = 0; col < ColumnCount; col++)
             yield return (col, data[row, col]);
     }
 
+    public IEnumerable<TElement> IterateRow(long row) {
+        for (long col = 0; col < ColumnCount; col++)
+            yield return data[row, col];
+    }
 
     public bool IsOutOfArea(Vector pos) {
         // Check if the position is out of bounds
@@ -86,10 +138,11 @@ class Matrix<TElement> {
         }
     }
 
-    public void Print(StreamWriter writer) {
+    public void Print(StreamWriter writer, Func<TElement, string>? conversion) {
         for (var row = 0; row < RowCount; row++) {
             for (var col = 0; col < ColumnCount; col++) {
-                writer.Write(data[row, col]);
+                var element = data[row, col];
+                writer.Write((conversion != null) ? conversion(element) : element);
             }
             writer.WriteLine();
         }
