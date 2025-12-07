@@ -1,0 +1,141 @@
+﻿part1("input.txt");
+
+void part1(string file) {
+    Matrix<char> matrix = Matrix<char>.LoadFile(
+        file,
+        x => x
+    );
+    Vector? start = matrix.FindFirst('S');
+    if (start == null) {
+        throw new Exception("Invalid input");
+    }
+
+    // set beam below start... by assuming it's not a direct split
+    matrix[start.X + 1, start.Y] = '|';
+
+    var split = 0;
+    for (var row = start.X + 1; row < matrix.RowCount; row++) {
+        for (var col = 0; col < matrix.ColumnCount; col++) {
+            char above = matrix[row - 1, col];
+            if (above != '|') {
+                continue; // no bean above -> skip
+            }
+
+            char current = matrix[row, col];
+            if (current == '^') {
+                // split
+                matrix[row, col - 1] = '|';
+                matrix[row, col + 1] = '|';
+                split++;
+            } else {
+                matrix[row, col] = '|';
+            }
+        }
+
+        // using (StreamWriter writer = new StreamWriter(Console.OpenStandardOutput())) {
+        //     matrix.Print(writer);
+        // }
+    }
+
+    Console.WriteLine($"split {split}");
+}
+
+class Matrix<TElement> {
+    private TElement[,] data;
+
+    public Matrix(TElement[,] data) {
+        this.data = data;
+    }
+
+    public TElement this[long row, long column] {
+        get => data[row, column];
+        set => data[row, column] = value;
+    }
+    public long RowCount {
+        get => data.GetLongLength(0);
+    }
+
+    public long ColumnCount {
+        get => data.GetLongLength(1);
+    }
+
+    public Vector? FindFirst(TElement? element) {
+        for (var row = 0; row < RowCount; row++) {
+            for (var col = 0; col < ColumnCount; col++) {
+                if (object.Equals(element, data[row, col])) {
+                    return new (row, col);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public IEnumerable<(long Column, TElement Value)> IterateRow(long row) {
+        for (long col = 0; col < ColumnCount; col++)
+            yield return (col, data[row, col]);
+    }
+
+
+    public bool IsOutOfArea(Vector pos) {
+        // Check if the position is out of bounds
+        if (pos.X < 0 || pos.Y < 0 || pos.X >= data.GetLength(0) || pos.Y >= data.GetLength(1)) {
+            return true; // Out of bounds
+        } else {
+            return false;
+        }
+    }
+
+    public void Print(StreamWriter writer) {
+        for (var row = 0; row < RowCount; row++) {
+            for (var col = 0; col < ColumnCount; col++) {
+                writer.Write(data[row, col]);
+            }
+            writer.WriteLine();
+        }
+        writer.WriteLine();
+    }
+
+    public Matrix<TElementNew> Convert<TElementNew>(Func<TElement, TElementNew> conversion) {
+        var newData = new TElementNew[RowCount, ColumnCount];
+
+        for (var row = 0; row < RowCount; row++) {
+            for (var col = 0; col < ColumnCount; col++) {
+                newData[row, col] = conversion(data[row, col]);
+            }
+        }
+
+        return new Matrix<TElementNew>(newData);
+    }
+
+    public static Matrix<TElement> LoadFile(string file, Func<char, TElement> conversion) {
+        // Read all lines from the file
+        var lines = File.ReadAllLines(file);
+
+        // Determine the dimensions of the matrix
+        var rows = lines.Length;
+        var cols = lines[0].Length;
+
+        // Create the matrix
+        var data = new TElement[rows, cols];
+
+        // Fill the matrix
+        for (var i = 0; i < rows; i++) {
+            for (var j = 0; j < cols; j++) {
+                data[i, j] = conversion(lines[i][j]);
+            }
+        }
+
+        return new Matrix<TElement>(data);
+    }
+}
+
+record Vector(long X, long Y) {
+    public static Vector operator +(Vector p1, Vector p2) => new(p1.X + p2.X, p1.Y + p2.Y);
+    public static Vector operator -(Vector p1, Vector p2) => new(p1.X - p2.X, p1.Y - p2.Y);
+    public static Vector operator %(Vector p1, Vector p2) => new(p1.X % p2.X, p1.Y % p2.Y);
+    public static Vector operator *(Vector p, long factor) => new(p.X * factor, p.Y * factor);
+    public static Vector operator *(long factor, Vector p) => new(p.X * factor, p.Y * factor);
+    public static Vector operator /(Vector p, long factor) => new(p.X / factor, p.Y / factor);
+    public static Vector operator /(long factor, Vector p) => new(p.X / factor, p.Y / factor);
+}
