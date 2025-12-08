@@ -1,10 +1,11 @@
 ﻿using Common;
 using System.Diagnostics;
 
-part1("test.txt", 10);
-part1("input.txt", 1000);
+part("test.txt", 10);
+part("input.txt", 1000);
+part("input.txt", int.MaxValue);
 
-void part1(string file, int rounds) {
+void part(string file, int rounds) {
     var vectors = File.ReadAllLines(file)
         .Select(line => line
             .Split(',')
@@ -34,7 +35,7 @@ void part1(string file, int rounds) {
             Debug.Assert(foundJunctions.Count >= 0);
             Debug.Assert(foundJunctions.Count <= 2);
 
-            HashSet<Vector3D>? updateJunction = foundJunctions.First();
+            var updateJunction = foundJunctions.First();
             // add current elements
             updateJunction.Add(pair.Item1);
             updateJunction.Add(pair.Item2);
@@ -45,6 +46,14 @@ void part1(string file, int rounds) {
             // remember visited
             connected.Add(pair.Item1);
             connected.Add(pair.Item2);
+            if (connected.Count == vectors.Count) {
+                Console.WriteLine($"pair {pair}, calculated {pair.Item1.X * pair.Item2.X}");
+                break;
+            }
+        }
+
+        if (connected.Count == vectors.Count) {
+            break;
         }
     }
 
@@ -53,23 +62,16 @@ void part1(string file, int rounds) {
         .OrderDescending()
         .Take(3)
         .Aggregate((a, b) => a * b);
-    Console.WriteLine($"sum {result}");
-
+    Console.WriteLine($"calculated {result}");
 }
 
 double Distance(Vector3D a, Vector3D b) {
-    // return Math.Sqrt(
-    //     Math.Pow(a.X - b.X, 2)
-    //     + Math.Pow(a.Y - b.Y, 2)
-    //     + Math.Pow(a.Z - b.Z, 2)
-    // );
-    var dx = a.X - b.X;
-    var dy = a.Y - b.Y;
-    var dz = a.Z - b.Z;
-    return (dx * dx + dy * dy + dz * dz);
+    return Math.Sqrt(
+        Math.Pow(a.X - b.X, 2)
+        + Math.Pow(a.Y - b.Y, 2)
+        + Math.Pow(a.Z - b.Z, 2)
+    );
 }
-// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
 
 public static class DictionaryExtensions {
     public static void AddValue<TKey, TValue>(this IDictionary<TKey, HashSet<TValue>> d, TKey k, TValue v) {
