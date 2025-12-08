@@ -25,7 +25,7 @@ void part(string file, int rounds) {
         }
     }
 
-    var allJunction = vectors.Select(x => new HashSet<Vector3D>{ x }).ToList();
+    var allJunction = vectors.Select(x => new HashSet<Vector3D> { x }).ToList();
     HashSet<Vector3D> connected = new();
     foreach (var (distance, pairs) in relations.Take(rounds)) {
         foreach (var pair in pairs) {
