@@ -9,13 +9,13 @@ void part2(string file) {
             _ => 0
         }
     );
-    Vector? start = matrix.FindFirst(-2);
+    Vector2D? start = matrix.FindFirst(-2);
     if (start == null) {
         throw new Exception("Invalid input");
     }
 
-    // set beam below start... by assuming it's not a direct split
-    matrix[start.X + 1, start.Y] = 1;
+    // set bean start
+    matrix[start.X, start.Y] = 1;
 
     for (var row = start.X + 1; row < matrix.RowCount; row++) {
         for (var col = 0; col < matrix.ColumnCount; col++) {
@@ -41,7 +41,7 @@ void part2(string file) {
     }
 
     long sum = 0;
-    foreach (var element in matrix.IterateRow(matrix.RowCount - 1)) {
+    foreach (var element in matrix.EnumerateInRow(matrix.RowCount - 1)) {
         sum += element;
     }
 
@@ -53,13 +53,13 @@ void part1(string file) {
         file,
         x => x
     );
-    Vector? start = matrix.FindFirst('S');
+    Vector2D? start = matrix.FindFirst('S');
     if (start == null) {
         throw new Exception("Invalid input");
     }
 
-    // set beam below start... by assuming it's not a direct split
-    matrix[start.X + 1, start.Y] = '|';
+    // set bean start
+    matrix[start.X, start.Y] = '|';
 
     var split = 0;
     for (var row = start.X + 1; row < matrix.RowCount; row++) {
@@ -107,7 +107,7 @@ class Matrix<TElement> {
         get => data.GetLongLength(1);
     }
 
-    public Vector? FindFirst(TElement? element) {
+    public Vector2D? FindFirst(TElement? element) {
         for (var row = 0; row < RowCount; row++) {
             for (var col = 0; col < ColumnCount; col++) {
                 if (object.Equals(element, data[row, col])) {
@@ -119,17 +119,17 @@ class Matrix<TElement> {
         return null;
     }
 
-    public IEnumerable<(long ColumnIndex, TElement Value)> IterateRowWithIdx(long row) {
-        for (long col = 0; col < ColumnCount; col++)
-            yield return (col, data[row, col]);
-    }
-
-    public IEnumerable<TElement> IterateRow(long row) {
-        for (long col = 0; col < ColumnCount; col++)
+    public IEnumerable<TElement> EnumerateInRow(long row) {
+        for (var col = 0; col < ColumnCount; col++)
             yield return data[row, col];
     }
 
-    public bool IsOutOfArea(Vector pos) {
+    public IEnumerable<(long ColumnIndex, TElement Value)> EnumerateInWithIdx(long row) {
+        for (var col = 0; col < ColumnCount; col++)
+            yield return (col, data[row, col]);
+    }
+
+    public bool IsOutOfArea(Vector2D pos) {
         // Check if the position is out of bounds
         if (pos.X < 0 || pos.Y < 0 || pos.X >= data.GetLength(0) || pos.Y >= data.GetLength(1)) {
             return true; // Out of bounds
@@ -173,9 +173,9 @@ class Matrix<TElement> {
         var data = new TElement[rows, cols];
 
         // Fill the matrix
-        for (var i = 0; i < rows; i++) {
-            for (var j = 0; j < cols; j++) {
-                data[i, j] = conversion(lines[i][j]);
+        for (var row = 0; row < rows; row++) {
+            for (var col = 0; col < cols; col++) {
+                data[row, col] = conversion(lines[row][col]);
             }
         }
 
@@ -183,12 +183,12 @@ class Matrix<TElement> {
     }
 }
 
-record Vector(long X, long Y) {
-    public static Vector operator +(Vector p1, Vector p2) => new(p1.X + p2.X, p1.Y + p2.Y);
-    public static Vector operator -(Vector p1, Vector p2) => new(p1.X - p2.X, p1.Y - p2.Y);
-    public static Vector operator %(Vector p1, Vector p2) => new(p1.X % p2.X, p1.Y % p2.Y);
-    public static Vector operator *(Vector p, long factor) => new(p.X * factor, p.Y * factor);
-    public static Vector operator *(long factor, Vector p) => new(p.X * factor, p.Y * factor);
-    public static Vector operator /(Vector p, long factor) => new(p.X / factor, p.Y / factor);
-    public static Vector operator /(long factor, Vector p) => new(p.X / factor, p.Y / factor);
+record Vector2D(long X, long Y) {
+    public static Vector2D operator +(Vector2D p1, Vector2D p2) => new(p1.X + p2.X, p1.Y + p2.Y);
+    public static Vector2D operator -(Vector2D p1, Vector2D p2) => new(p1.X - p2.X, p1.Y - p2.Y);
+    public static Vector2D operator %(Vector2D p1, Vector2D p2) => new(p1.X % p2.X, p1.Y % p2.Y);
+    public static Vector2D operator *(Vector2D p, long factor) => new(p.X * factor, p.Y * factor);
+    public static Vector2D operator *(long factor, Vector2D p) => new(p.X * factor, p.Y * factor);
+    public static Vector2D operator /(Vector2D p, long factor) => new(p.X / factor, p.Y / factor);
+    public static Vector2D operator /(long factor, Vector2D p) => new(p.X / factor, p.Y / factor);
 }
