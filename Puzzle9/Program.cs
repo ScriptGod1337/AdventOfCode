@@ -1,10 +1,10 @@
-﻿
-using System.Diagnostics;
-using Common;
+﻿using Common;
 
-part("input.txt");
+part1("test.txt");
+part1("input.txt");
 
-void part(string file) {
+#region part2
+void part2(string file) {
     var vectors = File.ReadAllLines(file)
         .Select(line => line
             .Split(',')
@@ -13,29 +13,26 @@ void part(string file) {
         )
         .Select(v => new Vector2D(v[0], v[1]))
         .ToList();
-
-    var sorted = vectors
-        .OrderBy(v => v.X)
-        .ThenBy(v => v.Y)
-        .ToList();
-    var pairs = new List<(Vector2D, Vector2D)>();
-    for (var i = 0; i < sorted.Count; i++) {
-        for (var j = i + 1; j < sorted.Count; j++) {
-            pairs.Add((vectors[i], vectors[j]));
-        }
-    }
-
-    long maxArea = 0;
-    foreach (var (a, b) in pairs) {
-        var area = Area(a, b);
-        // Console.WriteLine($"{a} x {b} = {area}");
-        if (area > maxArea) {
-            maxArea = area;
-        }
-    }
-
-    Console.WriteLine($"maxArea {maxArea}");
+    
 }
+#endregion
 
-static long Area(Vector2D a, Vector2D b) =>
-    (Math.Abs(a.X - b.X) + 1) * (Math.Abs(a.Y - b.Y) + 1);
+#region part1
+void part1(string file) {
+    var vectors = File.ReadAllLines(file)
+        .Select(line => line
+            .Split(',')
+            .Select(long.Parse)
+            .ToArray()
+        )
+        .Select(v => new Vector2D(v[0], v[1]))
+        .ToList();
+    var areas = vectors.CreateTuple2()
+        .Select(x => new VectorArea2D(x.Item1, x.Item2));
+
+    var max = areas
+        .Select(x => x.Size())
+        .Max();
+    Console.WriteLine($"maxArea {max}");
+}
+#endregion
