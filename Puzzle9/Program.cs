@@ -28,10 +28,10 @@ void part1(string file) {
         .Select(v => new Vector2D(v[0], v[1]))
         .ToList();
     var areas = vectors.CreateTuple2()
-        .Select(x => new VectorArea2D(x.Item1, x.Item2));
+        .Select(x => new VectorPlane2D(x.Item1, x.Item2));
 
     var max = areas
-        .Select(x => x.Size())
+        .Select(x => x.Size)
         .Max();
     Console.WriteLine($"maxArea {max}");
 }
