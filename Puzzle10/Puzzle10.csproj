@@ -11,4 +11,9 @@
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 
+  <!-- version must math version of libz3-dev -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Z3" Version="4.8.12" />
+  </ItemGroup>
+
 </Project>
